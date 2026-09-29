@@ -119,7 +119,7 @@ Future<void> trackShiftInBackground(ServiceInstance service) async {
     if (stopped || sending) return;
     final now = DateTime.now();
     if (lastSent != null &&
-        now.difference(lastSent!) < const Duration(seconds: 20)) {
+        now.difference(lastSent!) < const Duration(seconds: 60)) {
       return;
     }
     sending = true;
@@ -154,10 +154,10 @@ Future<void> trackShiftInBackground(ServiceInstance service) async {
   positions = Geolocator.getPositionStream(
       locationSettings: AndroidSettings(
     accuracy: LocationAccuracy.medium,
-    distanceFilter: 20,
-    intervalDuration: const Duration(seconds: 30),
+    distanceFilter: 50,
+    intervalDuration: const Duration(seconds: 60),
   )).listen(send, onError: (_) {});
-  heartbeat = Timer.periodic(const Duration(seconds: 75), (_) async {
+  heartbeat = Timer.periodic(const Duration(seconds: 90), (_) async {
     if (stopped || sending) return;
     try {
       final point = await Geolocator.getCurrentPosition(

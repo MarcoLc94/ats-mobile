@@ -9,7 +9,7 @@ Aplicación Flutter basada en el armazón Android de BitLearn Mobile, adaptada a
 - Órdenes asignadas con paginación, detalle, checklist, lecturas, comentarios, fotos, firmas y finalización.
 - Agenda y avisos de la API; ajustes de tema, biometría y cierre de sesión.
 - Copia local cifrada de órdenes y borradores de texto. Fotos y firmas pendientes se guardan en el directorio privado de la app hasta confirmar el guardado. Los conflictos HTTP 409 conservan el borrador y requieren revisión manual.
-- Botón visible para iniciar y terminar el turno. Durante el turno, Android mantiene un servicio de ubicación en primer plano con notificación persistente y envía coordenadas recientes por HTTPS. El mapa web usa WebSocket para mostrarlas al instante.
+- Botón visible para iniciar y terminar el turno. Durante el turno, Android mantiene un servicio de ubicación en primer plano con notificación persistente y envía coordenadas recientes por HTTPS, como máximo una vez por minuto; sin movimiento significativo, consulta el GPS cada 90 segundos. El mapa web consulta bajo demanda y solo abre WebSocket cuando operación activa «En vivo».
 
 La app muestra datos guardados sin conexión. Las escrituras requieren conexión y confirmación del servidor; no intenta completar órdenes en segundo plano sin que el técnico vea el resultado. La API de push actual acepta tokens **Expo**, que una app Flutter no emite. Los avisos se consultan al abrir la pestaña o al actualizarla; para push nativo hará falta agregar FCM al backend y configurar Firebase para Android.
 
