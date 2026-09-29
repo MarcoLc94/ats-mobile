@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -67,7 +68,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   String get draftKey => 'order-draft:${widget.orderId}';
   String get orderKey => 'order:${widget.orderId}';
   bool get editable =>
-      order?['status'] == 'open' && order?['needs_review'] != true;
+      order?['status'] == 'open' &&
+      order?['needs_review'] != true &&
+      order?['accepted_at'] != null;
 
   @override
   void initState() {
@@ -342,6 +345,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  Future<void> _accept() async {
+    if (busy || cached) return;
+    setState(() => busy = true);
+    try {
+      final result = asMap(await widget.session
+          .request('POST', '/service_orders/${widget.orderId}/accept'));
+      order = result;
+      await widget.session.saveCache(orderKey, result);
+      if (mounted) _message('Orden aceptada. Ya puedes registrar el servicio.');
+    } catch (e) {
+      if (mounted) _message(e.toString());
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = order;
@@ -386,6 +405,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               Text('Fecha: ${item['start_date']}'),
                           ]))),
               const SizedBox(height: 14),
+              _OrderTimingCard(order: item),
+              if (item['status'] == 'open' && item['accepted_at'] == null) ...[
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                    onPressed: busy || cached ? null : _accept,
+                    icon: const Icon(Icons.task_alt),
+                    label: const Text('Aceptar orden de servicio')),
+                const SizedBox(height: 8),
+              ],
               Text('Checklist', style: Theme.of(context).textTheme.titleLarge),
               ...checklist.entries.map((entry) => CheckboxListTile(
                     dense: true,
@@ -503,6 +531,70 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ]),
     );
   }
+}
+
+class _OrderTimingCard extends StatefulWidget {
+  final Map<String, dynamic> order;
+  const _OrderTimingCard({required this.order});
+
+  @override
+  State<_OrderTimingCard> createState() => _OrderTimingCardState();
+}
+
+class _OrderTimingCardState extends State<_OrderTimingCard> {
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && widget.order['status'] == 'open') setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  String duration(String field) {
+    final start = DateTime.tryParse(widget.order[field]?.toString() ?? '');
+    if (start == null) return '—';
+    final status = widget.order['status'];
+    final endValue = status == 'completed'
+        ? widget.order['completed_at']
+        : status == 'cancelled'
+            ? widget.order['cancelled_at']
+            : null;
+    final end = status == 'open'
+        ? DateTime.now()
+        : DateTime.tryParse(endValue?.toString() ?? '');
+    if (end == null) return '—';
+    final seconds = math.max(0, end.difference(start).inSeconds);
+    final days = seconds ~/ 86400;
+    final hours = (seconds % 86400) ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final rest = seconds % 60;
+    return '${days > 0 ? '$days d ' : ''}${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Tiempos de la orden',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('Tiempo total: ${duration('assigned_at')}'),
+            Text('Tiempo asignado: ${duration('accepted_at')}'),
+            if (widget.order['assigned_at'] == null)
+              const Text('Esta asignación no tiene hora registrada.'),
+          ]),
+        ),
+      );
 }
 
 class _SignaturePainter extends CustomPainter {

@@ -9,7 +9,7 @@ Aplicación Flutter basada en el armazón Android de BitLearn Mobile, adaptada a
 - Órdenes asignadas con paginación, detalle, checklist, lecturas, comentarios, fotos, firmas y finalización.
 - Agenda y avisos de la API; ajustes de tema, biometría y cierre de sesión.
 - Copia local cifrada de órdenes y borradores de texto. Fotos y firmas pendientes se guardan en el directorio privado de la app hasta confirmar el guardado. Los conflictos HTTP 409 conservan el borrador y requieren revisión manual.
-- Botón visible para iniciar y terminar el turno. Durante el turno, Android mantiene un servicio de ubicación en primer plano con notificación persistente y envía coordenadas recientes por HTTPS, como máximo una vez por minuto; sin movimiento significativo, consulta el GPS cada 90 segundos. El mapa web consulta bajo demanda y solo abre WebSocket cuando operación activa «En vivo».
+- Botón visible para iniciar y terminar el turno. Durante el turno, Android mantiene un servicio de ubicación en primer plano con notificación persistente y envía coordenadas recientes por HTTPS. Normalmente limita los envíos a uno por minuto; si operación activa «En vivo», el teléfono lo detecta en su siguiente reporte (hasta unos 90 segundos) y puede enviar cada 5 segundos mientras cambia de posición. Tras tres reportes sin desplazamiento significativo vuelve al modo de bajo consumo, con comprobaciones de movimiento y un reporte de referencia cada 90 segundos. El mapa web consulta bajo demanda y solo abre WebSocket cuando operación activa «En vivo».
 
 La app muestra datos guardados sin conexión. Las escrituras requieren conexión y confirmación del servidor; no intenta completar órdenes en segundo plano sin que el técnico vea el resultado. La API de push actual acepta tokens **Expo**, que una app Flutter no emite. Los avisos se consultan al abrir la pestaña o al actualizarla; para push nativo hará falta agregar FCM al backend y configurar Firebase para Android.
 
@@ -28,7 +28,7 @@ La URL configurada debe ser HTTPS. No incluir contraseñas, llaves de Firebase n
 
 El detalle de una orden debe devolver `status: "open" | "completed" | "cancelled"`. La rama de backend `fix/mobile-service-order-response` corrige esa respuesta; debe integrarse en `supabase` antes de usar la app con la API de producción.
 
-Los técnicos ven únicamente órdenes asignadas a su cuenta. La creación de nuevas órdenes desde móvil queda pendiente de definir: la API permite `POST /service_orders`, pero actualmente no expone catálogos móviles de clientes y equipos para elegirlos de forma segura.
+Los técnicos ven únicamente órdenes asignadas a su cuenta. Deben pulsar «Aceptar orden de servicio» antes de editarla o completarla. La app muestra el tiempo total desde la asignación y el tiempo asignado desde la aceptación; ambos se congelan al cerrar la orden. La creación de nuevas órdenes desde móvil queda pendiente de definir: la API permite `POST /service_orders`, pero actualmente no expone catálogos móviles de clientes y equipos para elegirlos de forma segura.
 
 ## Pruebas antes de producción
 
